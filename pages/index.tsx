@@ -150,7 +150,7 @@ export default function Home() {
 
   return (
     <main className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">🎵 Gemini Music Recommender</h1>
+      <h1 className="text-2xl font-bold mb-4">🎵 Mood Grooves 🎵</h1>
       {/* Login or Welcome message under the main label */}
       <div className="mb-6">
         {spotifyUser ? (

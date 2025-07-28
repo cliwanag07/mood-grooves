@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const playlist = await axios.post(
       `https://api.spotify.com/v1/users/${userId}/playlists`,
       {
-        name: 'Gemini Music Picks',
+        name: 'Mood Grooves Picks',
         description: 'Songs based on your mood',
         public: false,
       },
