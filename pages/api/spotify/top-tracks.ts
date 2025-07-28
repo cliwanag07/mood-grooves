@@ -12,8 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     res.status(200).json(response.data);
-  } catch (err: any) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to fetch top tracks' });
+  } catch (err: unknown) {
+    console.error('Error fetching top tracks:', err);
   }
 }

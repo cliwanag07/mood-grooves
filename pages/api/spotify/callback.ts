@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 🔒 Redirect to your front-end with access_token (not ideal for prod, but okay for dev)
     res.redirect(`/playlist?access_token=${access_token}`);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err);
     res.status(500).json({ error: 'Token exchange failed' });
   }
