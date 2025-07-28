@@ -4,13 +4,16 @@ export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tracks, setTracks] = useState<string[]>([]);
+  const [uris, setUris] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [playlistUrl, setPlaylistUrl] = useState('');
 
   // Submit prompt to Gemini API
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
+    setPlaylistUrl('');
     try {
       const res = await fetch('/api/gemini/suggest-tags', {
         method: 'POST',
@@ -23,6 +26,7 @@ export default function Home() {
 
       setTags(data.tags || []);
       setTracks(data.tracks || []);
+      setUris(data.uris || []);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -39,6 +43,7 @@ export default function Home() {
     if (tags.length === 0) return;
     setLoading(true);
     setError('');
+    setPlaylistUrl('');
     try {
       const res = await fetch('/api/recommendations', {
         method: 'POST',
@@ -47,11 +52,43 @@ export default function Home() {
       });
       const data = await res.json();
       setTracks(data.tracks || []);
+      setUris(data.uris || []);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
         setError('Failed to refresh tracks');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save tracks to Spotify playlist (calls your API)
+  const saveToPlaylist = async () => {
+    if (uris.length === 0) {
+      setError('No tracks to save');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setPlaylistUrl('');
+    try {
+      const res = await fetch('/api/spotify/save-playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uris }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to save playlist');
+
+      setPlaylistUrl(data.playlistUrl);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to save playlist');
       }
     } finally {
       setLoading(false);
@@ -70,13 +107,31 @@ export default function Home() {
         onChange={(e) => setPrompt(e.target.value)}
       />
 
-      <button
-        onClick={handleSubmit}
-        className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        disabled={loading}
-      >
-        {loading ? 'Generating...' : 'Get Music'}
-      </button>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={handleSubmit}
+          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? 'Generating...' : 'Get Music'}
+        </button>
+
+        <button
+          onClick={refreshTracks}
+          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          disabled={loading || tags.length === 0}
+        >
+          Refresh Tracks
+        </button>
+
+        <button
+          onClick={saveToPlaylist}
+          className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          disabled={loading || uris.length === 0}
+        >
+          Save to Playlist
+        </button>
+      </div>
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
 
@@ -99,6 +154,20 @@ export default function Home() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {playlistUrl && (
+        <div className="mt-6">
+          <h2 className="font-semibold">✅ Playlist Created!</h2>
+          <a
+            href={playlistUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-600 underline"
+          >
+            Open Spotify Playlist
+          </a>
         </div>
       )}
     </main>

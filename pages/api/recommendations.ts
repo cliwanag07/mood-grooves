@@ -30,7 +30,7 @@ async function getSpotifyAccessToken() {
   return spotifyAccessToken;
 }
 
-async function searchSpotifyTrack(title: string, artist?: string) {
+async function searchSpotifyTrack(title: string, artist?: string): Promise<{ url: string; uri: string } | null> {
   const token = await getSpotifyAccessToken();
   const query = artist ? `${title} ${artist}` : title;
 
@@ -44,7 +44,13 @@ async function searchSpotifyTrack(title: string, artist?: string) {
   });
 
   const items = response.data.tracks.items;
-  return items.length > 0 ? items[0].external_urls.spotify : null;
+  if (items.length > 0) {
+    return {
+      url: items[0].external_urls.spotify,
+      uri: items[0].uri,
+    };
+  }
+  return null;
 }
 
 function shuffle<T>(array: T[]): T[] {
@@ -89,15 +95,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return true;
     });
 
-    const results: string[] = [];
+    const resultsUrls: string[] = [];
+    const resultsUris: string[] = [];
 
     for (const track of shuffled) {
-      const url = await searchSpotifyTrack(track.name, track.artist);
-      if (url) results.push(url);
-      if (results.length >= 5) break;
+      const result = await searchSpotifyTrack(track.name, track.artist);
+      if (result) {
+        resultsUrls.push(result.url);
+        resultsUris.push(result.uri);
+      }
+      if (resultsUrls.length >= 5) break;
     }
 
-    return res.status(200).json({ tracks: results });
+    return res.status(200).json({
+      tracks: resultsUrls,
+      uris: resultsUris,
+    });
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error('Error fetching track recommendations:', err.message);
