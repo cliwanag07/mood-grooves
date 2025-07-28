@@ -1,93 +1,45 @@
-import { useState } from "react";
-
-const dummySpotifyTracks = [
-  "3n3Ppam7vgaVa1iaRUc9Lp", // Example track IDs from Spotify
-  "7ouMYWpwJ422jRcDASZB7P",
-  "1lDWb6b6ieDQ2xT7ewTC3G",
-  "2takcwOaAZWiXQijPHIx7B",
-  "5ChkMS8OtdzJeqyybCc9R5",
-];
+import { useState } from 'react';
 
 export default function Home() {
-  const [journal, setJournal] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [moodSummary, setMoodSummary] = useState("");
-  const [showTracks, setShowTracks] = useState(false);
+  const [input, setInput] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!journal.trim()) return;
+  const handleSubmit = async () => {
+    const res = await fetch('/api/gemini/suggest-tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: input }),
+    });
 
-    setLoading(true);
-    setShowTracks(false);
-    setMoodSummary("");
-
-    try {
-      const res = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ journal }),
-      });
-
-      if (!res.ok) throw new Error("Failed to get mood");
-
-      const data = await res.json();
-      setMoodSummary(data.moodSummary || "Mood received!");
-      setShowTracks(true);
-    } catch (err) {
-      setMoodSummary("Error fetching mood.");
-    } finally {
-      setLoading(false);
-    }
-  }
+    const data = await res.json();
+    setGenres(data.tags || []);
+  };
 
   return (
-    <main style={{ maxWidth: 600, margin: "2rem auto", fontFamily: "Arial" }}>
-      <h1>MoodGrooves Journal</h1>
+    <div className="p-4">
+      <textarea
+        placeholder="How are you feeling today?"
+        className="w-full border p-2 mb-4"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+      />
+      <button
+        className="bg-blue-500 text-white px-4 py-2"
+        onClick={handleSubmit}
+      >
+        Submit
+      </button>
 
-      <form onSubmit={handleSubmit}>
-        <textarea
-          rows={6}
-          placeholder="Write your journal entry..."
-          value={journal}
-          onChange={(e) => setJournal(e.target.value)}
-          style={{ width: "100%", padding: "0.5rem", fontSize: "1rem" }}
-        />
-        <button type="submit" disabled={loading} style={{ marginTop: "1rem" }}>
-          {loading ? "Analyzing..." : "Submit"}
-        </button>
-      </form>
-
-      {moodSummary && (
-        <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{moodSummary}</p>
-      )}
-
-      {showTracks && (
-        <section style={{ marginTop: "2rem" }}>
-          <h2>Top Tracks for You</h2>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "1rem",
-              justifyContent: "center",
-            }}
-          >
-            {dummySpotifyTracks.map((id) => (
-              <iframe
-                key={id}
-                src={`https://open.spotify.com/embed/track/${id}`}
-                width="300"
-                height="120"
-                allow="encrypted-media"
-                loading="lazy"
-                style={{ borderRadius: 8 }}
-                title={`Spotify Track ${id}`}
-              />
+      {genres.length > 0 && (
+        <div className="mt-4">
+          <h2 className="font-bold mb-2">Suggested Genres:</h2>
+          <ul className="list-disc ml-4">
+            {genres.map((tag) => (
+              <li key={tag}>{tag}</li>
             ))}
-          </div>
-        </section>
+          </ul>
+        </div>
       )}
-    </main>
+    </div>
   );
 }
