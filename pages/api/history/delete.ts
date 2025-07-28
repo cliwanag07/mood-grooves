@@ -18,10 +18,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const user = await User.findOne({ spotifyId });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    user.entries = user.entries.filter((entry: Entry) => String(entry.createdAt) !== String(createdAt));
+    user.entries = user.entries.filter(
+      (entry: Entry) => new Date(entry.createdAt).getTime() !== new Date(createdAt).getTime()
+    );
     await user.save();
     res.status(200).json({ entries: user.entries });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete entry' });
   }
-} 
+}
