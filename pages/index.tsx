@@ -224,7 +224,7 @@ export default function Home() {
   }, [spotifyUser]);
 
   return (
-    <main className="p-6 max-w-xl mx-auto">
+    <main className="p-10 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">🎵 Mood Grooves 🎵</h1>
       {/* Login or Welcome message under the main label */}
       <div className="mb-6">
@@ -323,18 +323,18 @@ export default function Home() {
                 <div className="font-semibold">Tags:</div>
                 <div className="mb-1">{entry.tags && entry.tags.join(', ')}</div>
                 <div className="font-semibold">Suggestions:</div>
-                <div className="flex flex-wrap gap-6">
+                <div className="flex flex-col gap-2">
                   {entry.tracks && entry.tracks.map((track, i) => (
                     <iframe
                       key={i}
                       src={`https://open.spotify.com/embed/track/${extractSpotifyId(track.url)}`}
-                      width="320"
-                      height="380"
+                      width="100%"
+                      height="80"
                       frameBorder="0"
                       allow="encrypted-media"
                       allowTransparency
                       title={`Spotify track embed history ${idx}-${i}`}
-                      style={{ borderRadius: '12px' }}
+                      style={{ borderRadius: '8px' }}
                     ></iframe>
                   ))}
                 </div>
