@@ -71,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const aiResponse = await axios.post(
-      `${GEMINI_API_BASE_URL}/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `${GEMINI_API_BASE_URL}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: `Infer the user's emotion and recommend music genres based on this input: "${prompt}". Respond with a comma-separated list of genres.` }] }],
       }
