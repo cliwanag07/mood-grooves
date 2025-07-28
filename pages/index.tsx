@@ -7,6 +7,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Submit prompt to Gemini API
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
@@ -27,6 +28,30 @@ export default function Home() {
         setError(err.message);
       } else {
         setError('Request failed');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refresh tracks with current tags
+  const refreshTracks = async () => {
+    if (tags.length === 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags }),
+      });
+      const data = await res.json();
+      setTracks(data.tracks || []);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to refresh tracks');
       }
     } finally {
       setLoading(false);
