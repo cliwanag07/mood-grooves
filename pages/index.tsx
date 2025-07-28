@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
+type Track = {
+  name: string;
+  artist: string;
+  url: string;
+};
+
+type HistoryEntry = {
+  prompt: string;
+  tags: string[];
+  tracks: Track[];
+  createdAt: string;
+};
+
 export default function Home() {
   const router = useRouter();
 
@@ -13,6 +26,7 @@ export default function Home() {
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [spotifyUser, setSpotifyUser] = useState<{ display_name: string; id: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   // On mount, check for access token in URL or localStorage
   useEffect(() => {
@@ -66,6 +80,34 @@ export default function Home() {
     window.location.href = '/api/spotify/auth';
   };
 
+  // Fetch user history
+  const fetchHistory = async (spotifyId: string) => {
+    const res = await fetch('/api/history/get', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spotifyId }),
+    });
+    const data = await res.json();
+    setHistory((data.entries as HistoryEntry[]) || []);
+  };
+
+  // Save entry to history
+  const saveEntry = async (prompt: string, tags: string[], tracks: Track[]) => {
+    if (!spotifyUser) return;
+    await fetch('/api/history/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spotifyId: spotifyUser.id,
+        displayName: spotifyUser.display_name,
+        prompt,
+        tags,
+        tracks,
+      }),
+    });
+    fetchHistory(spotifyUser.id);
+  };
+
   // Submit prompt to Gemini API
   const handleSubmit = async () => {
     setLoading(true);
@@ -82,6 +124,15 @@ export default function Home() {
       setTags(data.tags || []);
       setTracks(data.tracks || []);
       setUris(data.uris || []);
+      // Save entry to DB if logged in
+      if (spotifyUser && data.tags && data.tracks) {
+        // Try to parse track info if available
+        const trackObjs = (data.tracks as string[]).map((url: string, i: number) => {
+          // If you have name/artist, use them; else fallback
+          return { name: url, artist: '', url };
+        });
+        await saveEntry(prompt, data.tags, trackObjs);
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -108,6 +159,13 @@ export default function Home() {
       const data = await res.json();
       setTracks(data.tracks || []);
       setUris(data.uris || []);
+      // Save entry to DB if logged in
+      if (spotifyUser && tags && data.tracks) {
+        const trackObjs = (data.tracks as string[]).map((url: string, i: number) => {
+          return { name: url, artist: '', url };
+        });
+        await saveEntry(prompt, tags, trackObjs);
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -147,6 +205,15 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  // Fetch history on login
+  useEffect(() => {
+    if (spotifyUser) {
+      fetchHistory(spotifyUser.id);
+    } else {
+      setHistory([]);
+    }
+  }, [spotifyUser]);
 
   return (
     <main className="p-6 max-w-xl mx-auto">
@@ -226,6 +293,33 @@ export default function Home() {
           >
             Open Spotify Playlist
           </a>
+        </div>
+      )}
+      {/* User History */}
+      {spotifyUser && history.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-bold mb-2">Your History</h2>
+          <div className="max-h-80 overflow-y-auto border rounded p-3 bg-gray-50">
+            {history.map((entry, idx) => (
+              <div key={idx} className="mb-4 pb-2 border-b last:border-b-0 last:mb-0 last:pb-0">
+                <div className="text-sm text-gray-600 mb-1">{new Date(entry.createdAt).toLocaleString()}</div>
+                <div className="font-semibold">Prompt:</div>
+                <div className="mb-1">{entry.prompt}</div>
+                <div className="font-semibold">Tags:</div>
+                <div className="mb-1">{entry.tags && entry.tags.join(', ')}</div>
+                <div className="font-semibold">Suggestions:</div>
+                <ul className="list-disc ml-5">
+                  {entry.tracks && entry.tracks.map((track, i) => (
+                    <li key={i}>
+                      <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        {track.name && track.artist ? `${track.name} - ${track.artist}` : track.url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </main>
