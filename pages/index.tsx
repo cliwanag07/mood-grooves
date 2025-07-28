@@ -1,45 +1,81 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [input, setInput] = useState('');
-  const [genres, setGenres] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tracks, setTracks] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
-    const res = await fetch('/api/gemini/suggest-tags', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: input }),
-    });
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/gemini/suggest-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
 
-    const data = await res.json();
-    setGenres(data.tags || []);
+      if (!res.ok) throw new Error(data.error || 'Unknown error');
+
+      setTags(data.tags || []);
+      setTracks(data.tracks || []);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Request failed');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="p-4">
+    <main className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">🎵 Gemini Music Recommender</h1>
+
       <textarea
+        className="w-full p-2 border rounded mb-4"
+        rows={4}
         placeholder="How are you feeling today?"
-        className="w-full border p-2 mb-4"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
       />
+
       <button
-        className="bg-blue-500 text-white px-4 py-2"
         onClick={handleSubmit}
+        className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        disabled={loading}
       >
-        Submit
+        {loading ? 'Generating...' : 'Get Music'}
       </button>
 
-      {genres.length > 0 && (
-        <div className="mt-4">
-          <h2 className="font-bold mb-2">Suggested Genres:</h2>
-          <ul className="list-disc ml-4">
-            {genres.map((tag) => (
-              <li key={tag}>{tag}</li>
+      {error && <p className="text-red-500 mt-4">{error}</p>}
+
+      {tags.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-semibold">🎧 Tags:</h2>
+          <p>{tags.join(', ')}</p>
+        </div>
+      )}
+
+      {tracks.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-semibold">🎶 Tracks:</h2>
+          <ul className="list-disc pl-6">
+            {tracks.map((track, i) => (
+              <li key={i}>
+                <a href={track} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                  {track}
+                </a>
+              </li>
             ))}
           </ul>
         </div>
       )}
-    </div>
+    </main>
   );
 }

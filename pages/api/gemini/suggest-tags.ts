@@ -101,7 +101,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const tags = filterTags(text);
-    res.status(200).json({ raw: text, tags });
+
+    // Fetch tracks from the recommendations API
+    const trackResponse = await axios.post(`${req.headers.origin}/api/recommendations`, { tags });
+    const tracks = trackResponse.data.tracks;
+
+    return res.status(200).json({ raw: text, tags, tracks });
 
   } catch (error) {
     // --- General error handling for the API call itself ---
