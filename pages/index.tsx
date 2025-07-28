@@ -277,24 +277,23 @@ export default function Home() {
         </div>
       )}
       {tracks.length > 0 && (
-        <div className="mt-6">
-          <h2 className="font-semibold">🎶 Tracks:</h2>
-          <ul className="list-none space-y-6">
+        <div className="mt-6 w-full max-w-2xl">
+          <h2 className="text-xl font-semibold mb-2">🎶 Tracks:</h2>
+          <div className="flex flex-col gap-2">
             {tracks.map((track, i) => (
-              <li key={i}>
-                <iframe
-                  src={`https://open.spotify.com/embed/track/${extractSpotifyId(track)}`}
-                  width="320"
-                  height="380"
-                  frameBorder="0"
-                  allow="encrypted-media"
-                  allowTransparency
-                  title={`Spotify track embed ${i}`}
-                  style={{ borderRadius: '12px' }}
-                ></iframe>
-              </li>
+              <iframe
+                key={i}
+                src={`https://open.spotify.com/embed/track/${extractSpotifyId(track)}`}
+                width="100%"
+                height="80"
+                frameBorder="0"
+                allow="encrypted-media"
+                allowTransparency
+                title={`Spotify track embed ${i}`}
+                style={{ borderRadius: '8px' }}
+              ></iframe>
             ))}
-          </ul>
+          </div>
         </div>
       )}
       {playlistUrl && (
