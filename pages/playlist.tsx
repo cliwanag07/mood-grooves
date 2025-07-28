@@ -1,63 +1,153 @@
+import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  uri: string;
-}
+export default function Playlist() {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [expiresIn, setExpiresIn] = useState<number>(0);
+  const [expiresAt, setExpiresAt] = useState<number>(0);
+  const [uris, setUris] = useState<string[]>([]); // Spotify track URIs
+  const [playlistUrl, setPlaylistUrl] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-export default function PlaylistPage() {
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
-  const router = useRouter();
-
+  // Parse tokens from URL on mount
   useEffect(() => {
-    const token = router.query.access_token as string;
+    const params = new URLSearchParams(window.location.search);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+    const exp = params.get('expires_in');
 
-    if (token) {
-      fetch('/api/spotify/top-tracks', {
-        headers: { Authorization: `Bearer ${token}` },
+    if (at && rt && exp) {
+      setAccessToken(at);
+      setRefreshToken(rt);
+      setExpiresIn(Number(exp));
+      setExpiresAt(Date.now() + Number(exp) * 1000);
+
+      // Save tokens to localStorage for persistence
+      localStorage.setItem('spotify_access_token', at);
+      localStorage.setItem('spotify_refresh_token', rt);
+      localStorage.setItem('spotify_expires_at', (Date.now() + Number(exp) * 1000).toString());
+
+      // Clean URL so tokens aren’t visible
+      window.history.replaceState({}, document.title, '/playlist');
+    } else {
+      // Try to load from localStorage
+      const savedAt = localStorage.getItem('spotify_access_token');
+      const savedRt = localStorage.getItem('spotify_refresh_token');
+      const savedExp = localStorage.getItem('spotify_expires_at');
+      if (savedAt && savedRt && savedExp) {
+        setAccessToken(savedAt);
+        setRefreshToken(savedRt);
+        setExpiresAt(Number(savedExp));
+      }
+    }
+  }, []);
+
+  // Refresh access token automatically if expired or near expiry
+  useEffect(() => {
+    if (!refreshToken) return;
+
+    const now = Date.now();
+
+    if (expiresAt && expiresAt - now < 60 * 1000) {
+      // Token expires in less than 1 min, refresh it
+      fetch('/api/spotify/refresh-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
       })
-        .then(res => res.json())
-        .then(data => {
-          if (data.items) {
-            setTracks(data.items.slice(0, 5)); // Top 5
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.access_token) {
+            setAccessToken(data.access_token);
+            const newExpiresAt = Date.now() + data.expires_in * 1000;
+            setExpiresAt(newExpiresAt);
+            localStorage.setItem('spotify_access_token', data.access_token);
+            localStorage.setItem('spotify_expires_at', newExpiresAt.toString());
+            if (data.refresh_token) {
+              setRefreshToken(data.refresh_token);
+              localStorage.setItem('spotify_refresh_token', data.refresh_token);
+            }
+          } else {
+            setError('Failed to refresh token');
           }
         })
-        .catch(err => console.error('Failed to fetch tracks', err));
+        .catch(() => setError('Failed to refresh token'));
     }
-  }, [router.query.access_token]);
+  }, [expiresAt, refreshToken]);
 
-  const handleLogin = () => {
-    window.location.href = '/api/spotify/auth';
+  // Save playlist function
+  const savePlaylist = async () => {
+    if (!accessToken || uris.length === 0) {
+      setError('Missing access token or no tracks to save');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/spotify/save-playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uris, accessToken }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to save playlist');
+
+      setPlaylistUrl(data.playlistUrl);
+    } catch (err: unknown) { // Explicitly type as unknown
+      if (axios.isAxiosError(err)) {
+          // This is an Axios error (e.g., from network request failures)
+          setError(err.response?.data?.error || err.message || 'Failed to save playlist. Network error.');
+          // You might want to log the full error for debugging in development
+          console.error('Axios error during playlist save:', err);
+      } else if (err instanceof Error) {
+          // This is a standard JavaScript Error object
+          setError(err.message || 'Failed to save playlist. An unexpected error occurred.');
+          console.error('General error during playlist save:', err);
+      } else {
+          // This is some other unknown type of error (e.g., a string, number, or plain object thrown)
+          setError('Failed to save playlist. An unknown error type occurred.');
+          console.error('Unknown error type during playlist save:', err);
+      }
+  } finally {
+      setLoading(false);
+  }
   };
 
   return (
-    <div className="min-h-screen p-4 bg-neutral-950 text-white">
-      <h1 className="text-2xl font-bold mb-4">Your Top 5 Tracks</h1>
-      {tracks.length === 0 ? (
-        <button
-          onClick={handleLogin}
-          className="bg-green-500 px-4 py-2 rounded hover:bg-green-600"
-        >
-          Login with Spotify
-        </button>
-      ) : (
-        <div className="grid gap-4">
-          {tracks.map(track => (
-            <iframe
-              key={track.id}
-              src={`https://open.spotify.com/embed/track/${track.id}`}
-              width="100%"
-              height="160"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              className="rounded-xl"
-            />
-          ))}
-        </div>
+    <main className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Save Your Playlist</h1>
+
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      <textarea
+        placeholder="Enter Spotify track URIs (comma separated)"
+        rows={3}
+        className="w-full p-2 border rounded mb-4"
+        value={uris.join(', ')}
+        onChange={(e) => setUris(e.target.value.split(',').map((uri) => uri.trim()))}
+      />
+
+      <button
+        disabled={loading || uris.length === 0 || !accessToken}
+        onClick={savePlaylist}
+        className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+      >
+        {loading ? 'Saving...' : 'Save Playlist'}
+      </button>
+
+      {playlistUrl && (
+        <p className="mt-4">
+          Playlist saved!{' '}
+          <a href={playlistUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+            Open in Spotify
+          </a>
+        </p>
       )}
-    </div>
+    </main>
   );
 }

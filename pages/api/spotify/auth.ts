@@ -6,6 +6,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     'user-read-email',
     'user-top-read',
     'playlist-read-private',
+    'playlist-modify-private',
+    'playlist-modify-public',
   ].join(' ');
 
   const params = new URLSearchParams({

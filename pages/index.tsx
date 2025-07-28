@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function Home() {
+  const router = useRouter();
+
   const [prompt, setPrompt] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tracks, setTracks] = useState<string[]>([]);
@@ -8,6 +11,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
+
+  // Redirect to your backend auth endpoint for Spotify login
+  const handleLogin = () => {
+    window.location.href = '/api/spotify/auth'; // your OAuth start
+  };
 
   // Submit prompt to Gemini API
   const handleSubmit = async () => {
@@ -97,6 +105,15 @@ export default function Home() {
 
   return (
     <main className="p-6 max-w-xl mx-auto">
+
+      {/* Login button */}
+      <button
+        onClick={handleLogin}
+        className="bg-green-600 text-white px-4 py-2 rounded mb-6"
+      >
+        Login with Spotify
+      </button>
+
       <h1 className="text-2xl font-bold mb-4">🎵 Gemini Music Recommender</h1>
 
       <textarea

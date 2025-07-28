@@ -11,18 +11,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       grant_type: 'authorization_code',
       code,
       redirect_uri: process.env.SPOTIFY_REDIRECT_URI!,
-      client_id: process.env.SPOTIFY_CLIENT_ID!,
-      client_secret: process.env.SPOTIFY_CLIENT_SECRET!,
     });
 
+    const clientId = process.env.SPOTIFY_CLIENT_ID!;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
+
     const response = await axios.post('https://accounts.spotify.com/api/token', params.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      },
     });
 
     const { access_token, refresh_token, expires_in } = response.data;
 
-    // 🔒 Redirect to your front-end with access_token (not ideal for prod, but okay for dev)
-    res.redirect(`/playlist?access_token=${access_token}`);
+    // For dev: redirect with tokens as query params (not for production)
+    res.redirect(
+      `/playlist?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`
+    );
   } catch (err: unknown) {
     console.error(err);
     res.status(500).json({ error: 'Token exchange failed' });
