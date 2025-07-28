@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // For dev: redirect with tokens as query params (not for production)
     res.redirect(
-      `/playlist?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`
+      `/?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`
     );
   } catch (err: unknown) {
     console.error(err);
