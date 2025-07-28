@@ -77,8 +77,8 @@ export default function Home() {
               <iframe
                 key={id}
                 src={`https://open.spotify.com/embed/track/${id}`}
-                width="200"
-                height="80"
+                width="300"
+                height="120"
                 allow="encrypted-media"
                 loading="lazy"
                 style={{ borderRadius: 8 }}
