@@ -14,6 +14,14 @@ type HistoryEntry = {
   createdAt: string;
 };
 
+function extractSpotifyId(url: string) {
+  // Example Spotify track URL formats:
+  // https://open.spotify.com/track/{id}
+  // https://open.spotify.com/track/{id}?si=xxxx
+  const match = url.match(/track\/([a-zA-Z0-9]+)/);
+  return match ? match[1] : '';
+}
+
 export default function Home() {
   const router = useRouter();
 
@@ -271,12 +279,19 @@ export default function Home() {
       {tracks.length > 0 && (
         <div className="mt-6">
           <h2 className="font-semibold">🎶 Tracks:</h2>
-          <ul className="list-disc pl-6">
+          <ul className="list-none space-y-6">
             {tracks.map((track, i) => (
               <li key={i}>
-                <a href={track} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-                  {track}
-                </a>
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${extractSpotifyId(track)}`}
+                  width="320"
+                  height="380"
+                  frameBorder="0"
+                  allow="encrypted-media"
+                  allowTransparency
+                  title={`Spotify track embed ${i}`}
+                  style={{ borderRadius: '12px' }}
+                ></iframe>
               </li>
             ))}
           </ul>
@@ -299,24 +314,30 @@ export default function Home() {
       {spotifyUser && history.length > 0 && (
         <div className="mt-8">
           <h2 className="font-bold mb-2">Your History</h2>
-          <div className="max-h-80 overflow-y-auto border rounded p-3 bg-gray-50">
+          <div className="max-h-[400px] overflow-y-auto border rounded p-3 bg-gray-50 space-y-8">
             {history.map((entry, idx) => (
-              <div key={idx} className="mb-4 pb-2 border-b last:border-b-0 last:mb-0 last:pb-0">
+              <div key={idx}>
                 <div className="text-sm text-gray-600 mb-1">{new Date(entry.createdAt).toLocaleString()}</div>
                 <div className="font-semibold">Prompt:</div>
                 <div className="mb-1">{entry.prompt}</div>
                 <div className="font-semibold">Tags:</div>
                 <div className="mb-1">{entry.tags && entry.tags.join(', ')}</div>
                 <div className="font-semibold">Suggestions:</div>
-                <ul className="list-disc ml-5">
+                <div className="flex flex-wrap gap-6">
                   {entry.tracks && entry.tracks.map((track, i) => (
-                    <li key={i}>
-                      <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        {track.name && track.artist ? `${track.name} - ${track.artist}` : track.url}
-                      </a>
-                    </li>
+                    <iframe
+                      key={i}
+                      src={`https://open.spotify.com/embed/track/${extractSpotifyId(track.url)}`}
+                      width="320"
+                      height="380"
+                      frameBorder="0"
+                      allow="encrypted-media"
+                      allowTransparency
+                      title={`Spotify track embed history ${idx}-${i}`}
+                      style={{ borderRadius: '12px' }}
+                    ></iframe>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
