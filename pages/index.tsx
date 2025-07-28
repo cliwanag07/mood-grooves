@@ -223,6 +223,28 @@ export default function Home() {
     }
   }, [spotifyUser]);
 
+  // Delete a single entry
+  const deleteEntry = async (createdAt: string) => {
+    if (!spotifyUser) return;
+    await fetch('/api/history/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spotifyId: spotifyUser.id, createdAt }),
+    });
+    fetchHistory(spotifyUser.id);
+  };
+
+  // Delete all entries
+  const deleteAllEntries = async () => {
+    if (!spotifyUser) return;
+    await fetch('/api/history/deleteAll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spotifyId: spotifyUser.id }),
+    });
+    fetchHistory(spotifyUser.id);
+  };
+
   return (
     <main className="p-10 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">🎵 Mood Grooves 🎵</h1>
@@ -316,7 +338,15 @@ export default function Home() {
           <div className="max-h-[400px] overflow-y-auto border rounded p-3 bg-gray-50 space-y-8">
             {history.map((entry, idx) => (
               <div key={idx}>
-                <div className="text-sm text-gray-600 mb-1">{new Date(entry.createdAt).toLocaleString()}</div>
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600 mb-1">{new Date(entry.createdAt).toLocaleString()}</div>
+                  <button
+                    onClick={() => deleteEntry(entry.createdAt)}
+                    className="text-red-600 hover:underline text-xs ml-2"
+                  >
+                    Delete
+                  </button>
+                </div>
                 <div className="font-semibold">Prompt:</div>
                 <div className="mb-1">{entry.prompt}</div>
                 <div className="font-semibold">Tags:</div>
@@ -340,6 +370,12 @@ export default function Home() {
               </div>
             ))}
           </div>
+          <button
+            onClick={deleteAllEntries}
+            className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Delete All History
+          </button>
         </div>
       )}
     </main>
