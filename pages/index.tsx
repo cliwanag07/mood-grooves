@@ -1,14 +1,26 @@
 import { useState } from "react";
 
+const dummySpotifyTracks = [
+  "3n3Ppam7vgaVa1iaRUc9Lp", // Example track IDs from Spotify
+  "7ouMYWpwJ422jRcDASZB7P",
+  "1lDWb6b6ieDQ2xT7ewTC3G",
+  "2takcwOaAZWiXQijPHIx7B",
+  "5ChkMS8OtdzJeqyybCc9R5",
+];
+
 export default function Home() {
   const [journal, setJournal] = useState("");
-  const [mood, setMood] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [moodSummary, setMoodSummary] = useState("");
+  const [showTracks, setShowTracks] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!journal.trim()) return;
+
     setLoading(true);
-    setMood(null);
+    setShowTracks(false);
+    setMoodSummary("");
 
     try {
       const res = await fetch("/api/gemini", {
@@ -17,38 +29,63 @@ export default function Home() {
         body: JSON.stringify({ journal }),
       });
 
-      if (!res.ok) throw new Error("API error");
+      if (!res.ok) throw new Error("Failed to get mood");
 
       const data = await res.json();
-      setMood(data.moodSummary);
+      setMoodSummary(data.moodSummary || "Mood received!");
+      setShowTracks(true);
     } catch (err) {
-      setMood("Error fetching mood summary.");
+      setMoodSummary("Error fetching mood.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main style={{ padding: 20, maxWidth: 600, margin: "auto" }}>
+    <main style={{ maxWidth: 600, margin: "2rem auto", fontFamily: "Arial" }}>
       <h1>MoodGrooves Journal</h1>
+
       <form onSubmit={handleSubmit}>
         <textarea
           rows={6}
+          placeholder="Write your journal entry..."
           value={journal}
           onChange={(e) => setJournal(e.target.value)}
-          placeholder="Write your journal entry here..."
-          style={{ width: "100%", padding: 10, fontSize: 16 }}
-          required
+          style={{ width: "100%", padding: "0.5rem", fontSize: "1rem" }}
         />
-        <button type="submit" disabled={loading} style={{ marginTop: 10 }}>
-          {loading ? "Analyzing..." : "Get Mood Summary"}
+        <button type="submit" disabled={loading} style={{ marginTop: "1rem" }}>
+          {loading ? "Analyzing..." : "Submit"}
         </button>
       </form>
 
-      {mood && (
-        <section style={{ marginTop: 20 }}>
-          <h2>Mood Summary</h2>
-          <p>{mood}</p>
+      {moodSummary && (
+        <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{moodSummary}</p>
+      )}
+
+      {showTracks && (
+        <section style={{ marginTop: "2rem" }}>
+          <h2>Top Tracks for You</h2>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "1rem",
+              justifyContent: "center",
+            }}
+          >
+            {dummySpotifyTracks.map((id) => (
+              <iframe
+                key={id}
+                src={`https://open.spotify.com/embed/track/${id}`}
+                width="200"
+                height="80"
+                allow="encrypted-media"
+                loading="lazy"
+                style={{ borderRadius: 8 }}
+                title={`Spotify Track ${id}`}
+              />
+            ))}
+          </div>
         </section>
       )}
     </main>
