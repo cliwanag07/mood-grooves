@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (user.entries.length > 50) user.entries = user.entries.slice(0, 50);
       await user.save();
     } else {
-      user = await User.create({ spotifyId, displayName, entries: [entry] });
+      user = await User.create({ spotifyId, displayName, entries: [entry], role: 'user' });
     }
     res.status(200).json({ entries: user.entries });
   } catch (err) {
