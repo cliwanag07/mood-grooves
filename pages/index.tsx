@@ -125,7 +125,7 @@ export default function Home() {
       setAdminError('User cannot be found. Please log in again.');
       return;
     }
-    const res = await fetch('/api/admin/getUserHistory', {
+    const res = await fetch('/api/admin/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requesterId: spotifyUser.id, targetSpotifyId: adminSearchId }),
@@ -141,7 +141,7 @@ export default function Home() {
       setAdminError('User cannot be found. Please log in again.');
       return;
     }
-    await fetch('/api/admin/setRole', {
+    await fetch('/api/admin/manage-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requesterId: spotifyUser.id, targetSpotifyId, role }),
