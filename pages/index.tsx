@@ -148,6 +148,30 @@ export default function Home() {
     });
   };
 
+  // Admin: Delete a single entry from searched user's history
+  const adminDeleteEntry = async (createdAt: string) => {
+    if (!spotifyUser || !adminSearchId) return;
+    await fetch('/api/history/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spotifyId: adminSearchId, createdAt }),
+    });
+    // Refresh searched user's history
+    handleAdminSearch();
+  };
+
+  // Admin: Delete all entries from searched user's history
+  const adminDeleteAllEntries = async () => {
+    if (!spotifyUser || !adminSearchId) return;
+    await fetch('/api/history/deleteAll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spotifyId: adminSearchId }),
+    });
+    // Refresh searched user's history
+    handleAdminSearch();
+  };
+
   // Save entry to history
   const saveEntry = async (prompt: string, tags: string[], tracks: Track[]) => {
     if (!spotifyUser) return;
@@ -446,7 +470,47 @@ export default function Home() {
           {adminSearchHistory.length > 0 && (
             <div className="mt-4">
               <h3 className="font-semibold">User&apos;s History</h3>
-              {/* Render adminSearchHistory similar to your own history */}
+              <div className="max-h-[400px] overflow-y-auto border rounded p-3 bg-gray-50 space-y-8">
+                {adminSearchHistory.map((entry, idx) => (
+                  <div key={idx}>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-gray-600 mb-1">{new Date(entry.createdAt).toLocaleString()}</div>
+                      <button
+                        onClick={() => adminDeleteEntry(entry.createdAt)}
+                        className="text-red-600 hover:underline text-xs ml-2"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <div className="font-semibold">Prompt:</div>
+                    <div className="mb-1">{entry.prompt}</div>
+                    <div className="font-semibold">Tags:</div>
+                    <div className="mb-1">{entry.tags && entry.tags.join(', ')}</div>
+                    <div className="font-semibold">Suggestions:</div>
+                    <div className="flex flex-col gap-2">
+                      {entry.tracks && entry.tracks.map((track, i) => (
+                        <iframe
+                          key={i}
+                          src={`https://open.spotify.com/embed/track/${extractSpotifyId(track.url)}`}
+                          width="100%"
+                          height="80"
+                          frameBorder="0"
+                          allow="encrypted-media"
+                          allowTransparency
+                          title={`Spotify track embed admin ${idx}-${i}`}
+                          style={{ borderRadius: '8px' }}
+                        ></iframe>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={adminDeleteAllEntries}
+                className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Delete All History
+              </button>
             </div>
           )}
           {/* Promote/Demote controls */}
