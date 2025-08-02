@@ -35,6 +35,10 @@ export default function Home() {
   const [spotifyUser, setSpotifyUser] = useState<{ display_name: string; id: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminSearchId, setAdminSearchId] = useState('');
+  const [adminSearchHistory, setAdminSearchHistory] = useState<HistoryEntry[]>([]);
+  const [adminError, setAdminError] = useState('');
 
   // On mount, check for access token in URL or localStorage
   useEffect(() => {
@@ -83,6 +87,21 @@ export default function Home() {
     })();
   }, [accessToken]);
 
+  // Fetch user role after login
+  useEffect(() => {
+    if (spotifyUser) {
+      fetch('/api/history/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spotifyId: spotifyUser.id }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          setIsAdmin(data.role === 'admin');
+        });
+    }
+  }, [spotifyUser]);
+
   // Redirect to your backend auth endpoint for Spotify login
   const handleLogin = () => {
     window.location.href = '/api/spotify/auth';
@@ -97,6 +116,36 @@ export default function Home() {
     });
     const data = await res.json();
     setHistory((data.entries as HistoryEntry[]) || []);
+  };
+
+  // Admin: Search for any user's history
+  const handleAdminSearch = async () => {
+    setAdminError('');
+    if (!spotifyUser || !spotifyUser.id) {
+      setAdminError('User cannot be found. Please log in again.');
+      return;
+    }
+    const res = await fetch('/api/admin/getUserHistory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requesterId: spotifyUser.id, targetSpotifyId: adminSearchId }),
+    });
+    const data = await res.json();
+    setAdminSearchHistory(data.entries || []);
+  };
+
+  // Admin: Promote/demote user
+  const setUserRole = async (targetSpotifyId: string, role: 'admin' | 'user') => {
+    setAdminError('');
+    if (!spotifyUser || !spotifyUser.id) {
+      setAdminError('User cannot be found. Please log in again.');
+      return;
+    }
+    await fetch('/api/admin/setRole', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requesterId: spotifyUser.id, targetSpotifyId, role }),
+    });
   };
 
   // Save entry to history
@@ -376,6 +425,45 @@ export default function Home() {
           >
             Delete All History
           </button>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mt-8 p-4 border rounded bg-yellow-50">
+          <h2 className="font-bold mb-2">Admin Panel</h2>
+          {adminError && <div className="text-red-600 mb-2">{adminError}</div>}
+          <input
+            type="text"
+            placeholder="Enter Spotify User ID"
+            value={adminSearchId}
+            onChange={e => setAdminSearchId(e.target.value)}
+            className="border p-2 mr-2"
+          />
+          <button onClick={handleAdminSearch} className="bg-blue-600 text-white px-4 py-2 rounded">
+            Search User History
+          </button>
+          {/* Show searched user's history */}
+          {adminSearchHistory.length > 0 && (
+            <div className="mt-4">
+              <h3 className="font-semibold">User&apos;s History</h3>
+              {/* Render adminSearchHistory similar to your own history */}
+            </div>
+          )}
+          {/* Promote/Demote controls */}
+          <div className="mt-4">
+            <input
+              type="text"
+              placeholder="Spotify ID to promote/demote"
+              onChange={e => setAdminSearchId(e.target.value)}
+              className="border p-2 mr-2"
+            />
+            <button onClick={() => setUserRole(adminSearchId, 'admin')} className="bg-green-600 text-white px-4 py-2 rounded mr-2">
+              Promote to Admin
+            </button>
+            <button onClick={() => setUserRole(adminSearchId, 'user')} className="bg-red-600 text-white px-4 py-2 rounded">
+              Demote to User
+            </button>
+          </div>
         </div>
       )}
     </main>
