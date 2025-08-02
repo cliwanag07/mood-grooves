@@ -18,6 +18,7 @@ const UserSchema = new mongoose.Schema({
   displayName: String,
   entries: [EntrySchema],
   createdAt: { type: Date, default: Date.now },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
 });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);
