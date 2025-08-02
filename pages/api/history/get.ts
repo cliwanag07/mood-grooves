@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const user = await User.findOne({ spotifyId });
     if (!user) return res.status(200).json({ entries: [] });
-    res.status(200).json({ entries: user.entries.slice(0, 50) });
+    res.status(200).json({ entries: user.entries, role: user.role });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch entries' });
   }
